@@ -1,0 +1,11 @@
+name: GuiGive
+version: ${project.version}
+main: net.kunmc.lab.guigive.GuiGive
+api-version: 1.15
+
+commands:
+  gives:
+    usage: |-
+      /gives add <name>
+      /gives apply <name> <player>
+      /gives item <player>

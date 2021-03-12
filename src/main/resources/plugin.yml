@@ -9,3 +9,4 @@ commands:
       /gives add <name>
       /gives apply <name> <player>
       /gives item <player>
+      /gives default-item <name>

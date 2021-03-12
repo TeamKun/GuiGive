@@ -82,9 +82,14 @@ public final class GuiGive extends JavaPlugin implements Listener {
     public void onTemporaryInventoryClose(InventoryCloseEvent e) {
         Inventory inv = e.getInventory();
         if (temporaryInventories.contains(inv)) {
-            Player target = (Player) inv.getHolder();
-            int cnt = give(inv, target);
-            e.getPlayer().sendMessage(Message.Success(target.getName() + "に" + cnt + "個のアイテムを配りました."));
+            if (inv.getHolder() == null) {
+                int cnt = giveAll(inv);
+                e.getPlayer().sendMessage(Message.Success(Bukkit.getOnlinePlayers().size() + "人のプレイヤーに" + cnt + "個のアイテムを配りました."));
+            } else {
+                Player target = (Player) inv.getHolder();
+                int cnt = give(inv, target);
+                e.getPlayer().sendMessage(Message.Success(target.getName() + "に" + cnt + "個のアイテムを配りました."));
+            }
             temporaryInventories.remove(inv);
         }
     }
@@ -93,18 +98,31 @@ public final class GuiGive extends JavaPlugin implements Listener {
         int cnt = 0;
         for (int i = 27; i < 36; i++) {
             ItemStack item = inv.getItem(i);
-            if (item != null) {
-                cnt += item.getAmount();
+            if (item == null) continue;
+            cnt += item.getAmount();
+            if (target.getInventory().getItem(i - 27) == null) {
+                target.getInventory().setItem(i - 27, item);
+            } else {
                 target.getInventory().addItem(item);
             }
         }
-
         for (int i = 0; i < 27; i++) {
             ItemStack item = inv.getItem(i);
-            if (item != null) {
-                cnt += item.getAmount();
+            if (item == null) continue;
+            cnt += item.getAmount();
+            if (target.getInventory().getItem(i + 9) == null) {
+                target.getInventory().setItem(i + 9, item);
+            } else {
                 target.getInventory().addItem(item);
             }
+        }
+        return cnt;
+    }
+
+    public int giveAll(Inventory inv) {
+        int cnt = 0;
+        for (Player p : getServer().getOnlinePlayers()) {
+            cnt = give(inv, p);
         }
         return cnt;
     }
@@ -129,5 +147,9 @@ public final class GuiGive extends JavaPlugin implements Listener {
             }
         }
         return inv;
+    }
+
+    public void removeInventoryFile(String filename) {
+
     }
 }

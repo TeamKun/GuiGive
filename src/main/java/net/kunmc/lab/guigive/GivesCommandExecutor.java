@@ -1,6 +1,7 @@
 package net.kunmc.lab.guigive;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -9,7 +10,9 @@ import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -35,7 +38,12 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
                     sender.sendMessage(Message.Failure("このコマンドはプレイヤーから実行してください."));
                     return true;
                 }
-                Inventory inv = plugin.inventories.computeIfAbsent(args[1], name -> Bukkit.createInventory(((HumanEntity) sender), 36, name));
+                String filename = getBasenamse(args[1]); //DirectoryTraversal対策
+                Inventory inv = plugin.inventories.computeIfAbsent(filename, name -> {
+                    Inventory tmp = Bukkit.createInventory(((HumanEntity) sender), 36, name);
+                    tmp.all(new ItemStack(Material.AIR));
+                    return tmp;
+                });
                 ((HumanEntity) sender).openInventory(inv);
                 return true;
             }
@@ -50,7 +58,13 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
                     sender.sendMessage(Message.Failure(args[2] + "は存在しません."));
                     return true;
                 }
-                plugin.give(plugin.inventories.get(invName), p);
+                if (!plugin.inventories.containsKey(invName)) {
+                    sender.sendMessage(Message.Failure(invName + "は存在しません."));
+                    return true;
+                }
+
+                int cnt = plugin.give(plugin.inventories.get(invName), p);
+                sender.sendMessage(Message.Success(p.getName() + "に" + cnt + "個のアイテムを配りました."));
                 return true;
             }
             case "item": {
@@ -70,11 +84,14 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
                 return true;
             }
             case "default-item":
-                if (plugin.inventories.containsKey(args[1])) {
-                    plugin.respawnInventory = plugin.inventories.get(args[1]);
-                    sender.sendMessage(Message.Success(args[1] + "はリスポーン時のインベントリに設定されました."));
+                String invName = args[1];
+                if (plugin.inventories.containsKey(invName)) {
+                    plugin.respawnInventory = plugin.inventories.get(invName);
+                    plugin.getConfig().set("respawnInventory", invName);
+                    plugin.saveConfig();
+                    sender.sendMessage(Message.Success(invName + "はリスポーン時のインベントリに設定されました."));
                 } else {
-                    sender.sendMessage(Message.Failure(args[1] + "は存在しません."));
+                    sender.sendMessage(Message.Failure(invName + "は存在しません."));
                 }
                 return true;
         }
@@ -113,5 +130,9 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
         }
 
         return Collections.emptyList();
+    }
+
+    private String getBasenamse(String pathname) {
+        return new File(pathname).getName();
     }
 }

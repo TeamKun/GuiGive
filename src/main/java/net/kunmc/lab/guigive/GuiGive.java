@@ -1,6 +1,8 @@
 package net.kunmc.lab.guigive;
 
+import org.bukkit.Bukkit;
 import org.bukkit.GameRule;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -9,7 +11,13 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.io.BukkitObjectInputStream;
+import org.bukkit.util.io.BukkitObjectOutputStream;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +31,24 @@ public final class GuiGive extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
+        getDataFolder().mkdir();
+        for (String s : getDataFolder().list()) {
+            try {
+                inventories.put(s, loadInventory(s));
+            } catch (IOException | ClassNotFoundException ignore) {
+            }
+        }
+
+        this.saveDefaultConfig();
+        FileConfiguration config = this.getConfig();
+        String invName = ((String) config.get("respawnInventory"));
+        if (invName != null && inventories.containsKey(invName)) {
+            respawnInventory = inventories.get(invName);
+            getLogger().info("リスポーン時のインベントリが" + invName + "に設定されました.");
+        } else {
+            getLogger().info("リスポーン時のインベントリは設定されていません.");
+        }
+
         getServer().getPluginCommand("gives").setExecutor(new GivesCommandExecutor(this));
         getServer().getPluginManager().registerEvents(this, this);
     }
@@ -41,18 +67,67 @@ public final class GuiGive extends JavaPlugin implements Listener {
     }
 
     @EventHandler
+    public void onInventoryClose(InventoryCloseEvent e) {
+        String invTitle = e.getView().getTitle();
+        if (inventories.containsValue(e.getInventory())) {
+            try {
+                saveInventory(inventories.get(invTitle), invTitle);
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
+            }
+        }
+    }
+
+    @EventHandler
     public void onTemporaryInventoryClose(InventoryCloseEvent e) {
         Inventory inv = e.getInventory();
         if (temporaryInventories.contains(inv)) {
-            give(inv, ((Player) inv.getHolder()));
+            Player target = (Player) inv.getHolder();
+            int cnt = give(inv, target);
+            e.getPlayer().sendMessage(Message.Success(target.getName() + "に" + cnt + "個のアイテムを配りました."));
             temporaryInventories.remove(inv);
         }
     }
 
-    public void give(Inventory inv, Player target) {
-        for (ItemStack x : inv) {
-            if (x == null) continue;
-            target.getInventory().addItem(x);
+    public int give(Inventory inv, Player target) {
+        int cnt = 0;
+        for (int i = 27; i < 36; i++) {
+            ItemStack item = inv.getItem(i);
+            if (item != null) {
+                cnt += item.getAmount();
+                target.getInventory().addItem(item);
+            }
         }
+
+        for (int i = 0; i < 27; i++) {
+            ItemStack item = inv.getItem(i);
+            if (item != null) {
+                cnt += item.getAmount();
+                target.getInventory().addItem(item);
+            }
+        }
+        return cnt;
+    }
+
+    public void saveInventory(Inventory inv, String filename) throws IOException {
+        try (BukkitObjectOutputStream out = new BukkitObjectOutputStream(new FileOutputStream(new File(getDataFolder(), filename)))) {
+            out.writeInt(inv.getSize());
+            for (ItemStack item : inv) {
+                out.writeObject(item);
+            }
+        }
+    }
+
+    public Inventory loadInventory(String filename) throws IOException, ClassNotFoundException {
+        Inventory inv;
+        try (BukkitObjectInputStream in = new BukkitObjectInputStream(new FileInputStream(new File(getDataFolder(), filename)))) {
+            int size = in.readInt();
+            inv = Bukkit.createInventory(null, size, filename);
+            for (int i = 0; i < size; i++) {
+                ItemStack item = (ItemStack) in.readObject();
+                if (item != null) inv.setItem(i, item);
+            }
+        }
+        return inv;
     }
 }

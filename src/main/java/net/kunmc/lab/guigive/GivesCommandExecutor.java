@@ -35,7 +35,7 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
                     sender.sendMessage(Message.Failure("このコマンドはプレイヤーから実行してください."));
                     return true;
                 }
-                Inventory inv = plugin.inventories.computeIfAbsent(args[1], name -> Bukkit.createInventory(null, InventoryType.PLAYER, name));
+                Inventory inv = plugin.inventories.computeIfAbsent(args[1], name -> Bukkit.createInventory(((HumanEntity) sender), 36, name));
                 ((HumanEntity) sender).openInventory(inv);
                 return true;
             }

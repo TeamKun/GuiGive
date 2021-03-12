@@ -41,7 +41,7 @@ public final class GuiGive extends JavaPlugin implements Listener {
     }
 
     @EventHandler
-    public void onInventoryClose(InventoryCloseEvent e) {
+    public void onTemporaryInventoryClose(InventoryCloseEvent e) {
         Inventory inv = e.getInventory();
         if (temporaryInventories.contains(inv)) {
             give(inv, ((Player) inv.getHolder()));

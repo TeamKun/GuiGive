@@ -144,6 +144,7 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
             sender.sendMessage(Message.Success("登録インベントリ一覧"));
             plugin.inventories.forEach((name, inv) -> {
                 String desc = plugin.invDesc.get(inv);
+                if (desc == null || desc.isEmpty()) desc = "説明はありません";
                 sender.sendMessage(Message.Success(name + " - " + desc));
             });
             return true;

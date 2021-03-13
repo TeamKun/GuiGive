@@ -19,22 +19,32 @@ import java.util.stream.Stream;
 public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
     GuiGive plugin;
     Map<String, SubCommand> subCmds = new HashMap<>();
-    List<String> subCmdList = Arrays.asList("add", "apply", "item", "default-item", "remove");
+    List<String> subCmdList = Arrays.asList("add", "apply", "edit", "item", "default-item", "remove", "list");
 
     GivesCommandExecutor(GuiGive plugin) {
         this.plugin = plugin;
         subCmds.put("add", (sender, command, args) -> {
+            if (args.length < 2) return false;
             if (!(sender instanceof HumanEntity)) {
                 sender.sendMessage(Message.Failure("このコマンドはプレイヤーから実行してください."));
                 return true;
             }
-            String filename = getBasenamse(args[1]); //DirectoryTraversal対策
-            Inventory inv = plugin.inventories.computeIfAbsent(filename, name -> {
+            String invName = getBasenamse(args[1]); //DirectoryTraversal対策
+            if (plugin.inventories.containsKey(invName)) {
+                sender.sendMessage(Message.Failure(invName + "は存在しています."));
+                return true;
+            }
+            Inventory inv = plugin.inventories.computeIfAbsent(invName, name -> {
                 Inventory tmp = Bukkit.createInventory(((HumanEntity) sender), 36, name);
                 tmp.all(new ItemStack(Material.AIR));
                 return tmp;
             });
             ((HumanEntity) sender).openInventory(inv);
+
+            if (args.length >= 3) {
+                String desc = Arrays.stream(args).skip(2).collect(Collectors.joining(" "));
+                plugin.invDesc.put(inv, desc);
+            }
             return true;
         });
         subCmds.put("apply", (sender, command, args) -> {
@@ -62,7 +72,30 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
             }
             return true;
         });
+        subCmds.put("edit", (sender, command, args) -> {
+            if (args.length < 2) return false;
+            if (!(sender instanceof HumanEntity)) {
+                sender.sendMessage(Message.Failure("このコマンドはプレイヤーから実行してください."));
+                return true;
+            }
+
+            String invName = args[1];
+            if (!plugin.inventories.containsKey(invName)) {
+                sender.sendMessage(Message.Failure(invName + "は存在しません."));
+                return true;
+            }
+
+            Inventory inv = plugin.inventories.get(invName);
+            ((HumanEntity) sender).openInventory(inv);
+
+            if (args.length >= 3) {
+                String desc = Arrays.stream(args).skip(2).collect(Collectors.joining(" "));
+                plugin.invDesc.put(inv, desc);
+            }
+            return true;
+        });
         subCmds.put("item", (sender, command, args) -> {
+            if (args.length < 2) return false;
             if (!(sender instanceof HumanEntity)) {
                 sender.sendMessage(Message.Failure("このコマンドはプレイヤーから実行してください."));
                 return true;
@@ -85,6 +118,7 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
             return true;
         });
         subCmds.put("default-item", (sender, command, args) -> {
+            if (args.length < 2) return false;
             String invName = args[1];
             if (plugin.inventories.containsKey(invName)) {
                 plugin.respawnInventory = plugin.inventories.get(invName);
@@ -97,11 +131,21 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
             return true;
         });
         subCmds.put("remove", (sender, command, args) -> {
+            if (args.length < 2) return false;
             if (new File(plugin.getDataFolder(), getBasenamse(args[1])).delete()) {
+                plugin.inventories.remove(args[1]);
                 sender.sendMessage(Message.Success(args[1] + "は正常に削除されました."));
             } else {
                 sender.sendMessage(Message.Failure("削除に失敗しました."));
             }
+            return true;
+        });
+        subCmds.put("list", (sender, command, args) -> {
+            sender.sendMessage(Message.Success("登録インベントリ一覧"));
+            plugin.inventories.forEach((name, inv) -> {
+                String desc = plugin.invDesc.get(inv);
+                sender.sendMessage(Message.Success(name + " - " + desc));
+            });
             return true;
         });
     }
@@ -109,7 +153,7 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (args.length < 2) return false;
+        if (args.length < 1) return false;
         return subCmds.get(args[0].toLowerCase()).execute(sender, command, args);
     }
 
@@ -124,8 +168,10 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
         if (args.length == 2) {
             switch (subCmd) {
                 case "add":
+                    return Collections.singletonList("<name>");
                 case "apply":
                 case "default-item":
+                case "edit":
                 case "remove":
                     return new ArrayList<>(plugin.inventories.keySet()).stream()
                             .filter(x -> x.startsWith(args[1]))
@@ -137,10 +183,16 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
             }
         }
 
-        if (args.length == 3 && subCmd.equals("apply")) {
-            return Stream.concat(Bukkit.getOnlinePlayers().stream().map(Player::getName), Stream.of("@a"))
-                    .filter(x -> x.startsWith(args[2]))
-                    .collect(Collectors.toList());
+        if (args.length == 3) {
+            switch (subCmd) {
+                case "add":
+                case "edit":
+                    return Collections.singletonList("[description]");
+                case "apply":
+                    return Stream.concat(Bukkit.getOnlinePlayers().stream().map(Player::getName), Stream.of("@a"))
+                            .filter(x -> x.startsWith(args[2]))
+                            .collect(Collectors.toList());
+            }
         }
 
         return Collections.emptyList();

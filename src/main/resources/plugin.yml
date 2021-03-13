@@ -6,8 +6,10 @@ api-version: 1.15
 commands:
   gives:
     usage: |-
-      /gives add <name> - インベントリGUIを開く 閉じると<name>インデックスの更新と設定ファイルの更新が行われる
+      /gives add <name> [description] - 新規インベントリ作成を行う
       /gives apply <name> <player> - <name>に設定されたアイテムを<player>へ配布
+      /gives edit <name> [description] - 登録インベントリの編集を行う
       /gives item <player> - インベントリGUIを開く 閉じると即座にアイテムを<player>へ配布
+      /gives list - 登録インベントリの名前と説明を表示
       /gives default-item <name> - リスポーン時に配られるインベントリを指定
       /gives remove <name> - インベントリの設定ファイルを削除

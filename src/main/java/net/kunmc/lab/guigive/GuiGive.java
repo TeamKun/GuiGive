@@ -25,6 +25,7 @@ import java.util.Map;
 
 public final class GuiGive extends JavaPlugin implements Listener {
     public Map<String, Inventory> inventories = new HashMap<>();
+    public Map<Inventory, String> invDesc = new HashMap<>();
     // /gives item <player>用のMap
     public List<Inventory> temporaryInventories = new ArrayList<>();
     public Inventory respawnInventory = null;
@@ -34,8 +35,10 @@ public final class GuiGive extends JavaPlugin implements Listener {
         getDataFolder().mkdir();
         for (String s : getDataFolder().list()) {
             try {
-                inventories.put(s, loadInventory(s));
-            } catch (IOException | ClassNotFoundException ignore) {
+                if (s.equals("config.yml")) continue;
+                loadInventory(s);
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
             }
         }
 
@@ -71,7 +74,7 @@ public final class GuiGive extends JavaPlugin implements Listener {
         String invTitle = e.getView().getTitle();
         if (inventories.containsValue(e.getInventory())) {
             try {
-                saveInventory(inventories.get(invTitle), invTitle);
+                saveInventory(inventories.get(invTitle), invTitle, invDesc.get(inventories.get(invTitle)));
             } catch (IOException ioException) {
                 ioException.printStackTrace();
             }
@@ -127,17 +130,20 @@ public final class GuiGive extends JavaPlugin implements Listener {
         return cnt;
     }
 
-    public void saveInventory(Inventory inv, String filename) throws IOException {
+    public void saveInventory(Inventory inv, String filename, String description) throws IOException {
         try (BukkitObjectOutputStream out = new BukkitObjectOutputStream(new FileOutputStream(new File(getDataFolder(), filename)))) {
             out.writeInt(inv.getSize());
             for (ItemStack item : inv) {
                 out.writeObject(item);
             }
+            if (description == null) description = "";
+            out.writeUTF(description);
         }
     }
 
-    public Inventory loadInventory(String filename) throws IOException, ClassNotFoundException {
+    public void loadInventory(String filename) throws IOException, ClassNotFoundException {
         Inventory inv;
+        String description;
         try (BukkitObjectInputStream in = new BukkitObjectInputStream(new FileInputStream(new File(getDataFolder(), filename)))) {
             int size = in.readInt();
             inv = Bukkit.createInventory(null, size, filename);
@@ -145,11 +151,9 @@ public final class GuiGive extends JavaPlugin implements Listener {
                 ItemStack item = (ItemStack) in.readObject();
                 if (item != null) inv.setItem(i, item);
             }
+            description = in.readUTF();
         }
-        return inv;
-    }
-
-    public void removeInventoryFile(String filename) {
-
+        inventories.put(filename, inv);
+        invDesc.put(inv, description);
     }
 }

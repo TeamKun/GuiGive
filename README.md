@@ -2,16 +2,10 @@
 インベントリGUIをベースにgiveを行うプラグイン
 
 # 使い方
-/gives add <name> - チェストGUIを開く 閉じる時に内容が自動的にファイルへ保存される
-
-/gives apply <name> <player> - <name>インベントリに設定されたアイテムを<player>に配る
-
-/gives edit <name> [description] - 登録インベントリの編集を行う
-
-/gives item <player> - チェストGUIを閉じたら即座に<player>にアイテムを配る
-
-/gives default-item <name> - リスポーン時に配られるインベントリを指定 config.ymlに設定を保存している
-
-/gives list - 登録インベントリの名前と説明を表示
-
-/gives remove <name> - 保存されている<name>インベントリの設定ファイルを削除する
+/gives add <name> [description] - インベントリを新規作成
+/gives apply <name> <player> - <name>に設定されたアイテムを<player>へ配布
+/gives edit <name> [description] - 作成済みインベントリの編集
+/gives item <player> - インベントリGUIを開く 閉じると設定されたアイテムを<player>へ即座に配布
+/gives list - 作成済みインベントリの名前と説明を表示
+/gives default-item <name> - リスポーン時に配られるインベントリを指定
+/gives remove <name> - インベントリの設定ファイルとインデックスを削除

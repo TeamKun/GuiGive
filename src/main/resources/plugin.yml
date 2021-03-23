@@ -8,6 +8,7 @@ commands:
     usage: |-
       /gives add <name> [description] - インベントリを新規作成
       /gives apply <name> <player> - <name>に設定されたアイテムを<player>へ配布
+      /gives clear-default-item - default-itemを解除
       /gives edit <name> [description] - 作成済みインベントリの編集
       /gives item <player> - インベントリGUIを開く 閉じると設定されたアイテムを<player>へ即座に配布
       /gives list - 作成済みインベントリの名前と説明を表示

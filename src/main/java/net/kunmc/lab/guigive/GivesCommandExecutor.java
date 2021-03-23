@@ -19,7 +19,6 @@ import java.util.stream.Stream;
 public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
     GuiGive plugin;
     Map<String, SubCommand> subCmds = new HashMap<>();
-    List<String> subCmdList = Arrays.asList("add", "apply", "clear-default-item", "edit", "item", "default-item", "remove", "list");
 
     GivesCommandExecutor(GuiGive plugin) {
         this.plugin = plugin;
@@ -74,7 +73,7 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
         });
         subCmds.put("clear-default-item", ((sender, command, args) -> {
             plugin.respawnInventory = null;
-            plugin.getConfig().set("respawnInventory", "");
+            plugin.getConfig().set("respawnInventory", null);
             plugin.saveConfig();
             sender.sendMessage(Message.Success("default-itemを解除しました."));
             return true;
@@ -141,7 +140,11 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
             if (args.length < 2) return false;
             if (new File(plugin.getDataFolder(), getBasenamse(args[1])).delete()) {
                 Inventory inv = plugin.inventories.remove(args[1]);
-                if (plugin.respawnInventory.equals(inv)) plugin.respawnInventory = null;
+                if (plugin.respawnInventory.equals(inv)) {
+                    plugin.respawnInventory = null;
+                    plugin.getConfig().set("respawnInventory", null);
+                    plugin.saveConfig();
+                }
                 sender.sendMessage(Message.Success(args[1] + "は正常に削除されました."));
             } else {
                 sender.sendMessage(Message.Failure("削除に失敗しました."));
@@ -169,7 +172,7 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1)
-            return subCmdList.stream()
+            return subCmds.keySet().stream()
                     .filter(x -> x.startsWith(args[0]))
                     .collect(Collectors.toList());
 

@@ -23,15 +23,19 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
     GivesCommandExecutor(GuiGive plugin) {
         this.plugin = plugin;
         subCmds.put("add", (sender, command, args) -> {
-            if (args.length < 2) return false;
             if (!(sender instanceof HumanEntity)) {
                 sender.sendMessage(Message.Failure("このコマンドはプレイヤーから実行してください."));
-                return true;
+                return;
             }
+            if (args.length < 2) {
+                sender.sendMessage(Message.Failure("/gives add <name> [description]"));
+                return;
+            }
+
             String invName = getBasenamse(args[1]); //DirectoryTraversal対策
             if (plugin.inventories.containsKey(invName)) {
                 sender.sendMessage(Message.Failure(invName + "は存在しています."));
-                return true;
+                return;
             }
             Inventory inv = plugin.inventories.computeIfAbsent(invName, name -> {
                 Inventory tmp = Bukkit.createInventory(((HumanEntity) sender), 36, name);
@@ -44,17 +48,17 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
                 String desc = Arrays.stream(args).skip(2).collect(Collectors.joining(" "));
                 plugin.invDesc.put(inv, desc);
             }
-            return true;
+            return;
         });
         subCmds.put("apply", (sender, command, args) -> {
             if (args.length < 3) {
                 sender.sendMessage(Message.Failure("/gives apply <name> <player>"));
-                return true;
+                return;
             }
             String invName = args[1];
             if (!plugin.inventories.containsKey(invName)) {
                 sender.sendMessage(Message.Failure(invName + "は存在しません."));
-                return true;
+                return;
             }
 
             if (args[2].equals("@a")) {
@@ -64,31 +68,32 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
                 Player p = Bukkit.getPlayer(args[2]);
                 if (p == null) {
                     sender.sendMessage(Message.Failure(args[2] + "は存在しません."));
-                    return true;
+                    return;
                 }
                 int cnt = plugin.give(plugin.inventories.get(invName), p);
                 sender.sendMessage(Message.Success(p.getName() + "に" + cnt + "個のアイテムを配りました."));
             }
-            return true;
         });
         subCmds.put("clear-default-item", ((sender, command, args) -> {
             plugin.respawnInventory = null;
             plugin.getConfig().set("respawnInventory", null);
             plugin.saveConfig();
             sender.sendMessage(Message.Success("default-itemを解除しました."));
-            return true;
         }));
         subCmds.put("edit", (sender, command, args) -> {
-            if (args.length < 2) return false;
             if (!(sender instanceof HumanEntity)) {
                 sender.sendMessage(Message.Failure("このコマンドはプレイヤーから実行してください."));
-                return true;
+                return;
+            }
+            if (args.length < 2) {
+                sender.sendMessage(Message.Failure("/gives edit <name> [description]"));
+                return;
             }
 
             String invName = args[1];
             if (!plugin.inventories.containsKey(invName)) {
                 sender.sendMessage(Message.Failure(invName + "は存在しません."));
-                return true;
+                return;
             }
 
             Inventory inv = plugin.inventories.get(invName);
@@ -98,13 +103,15 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
                 String desc = Arrays.stream(args).skip(2).collect(Collectors.joining(" "));
                 plugin.invDesc.put(inv, desc);
             }
-            return true;
         });
         subCmds.put("item", (sender, command, args) -> {
-            if (args.length < 2) return false;
             if (!(sender instanceof HumanEntity)) {
                 sender.sendMessage(Message.Failure("このコマンドはプレイヤーから実行してください."));
-                return true;
+                return;
+            }
+            if (args.length < 2) {
+                sender.sendMessage(Message.Failure("/gives item <player>"));
+                return;
             }
 
             Player p;
@@ -114,17 +121,20 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
                 p = Bukkit.getPlayer(args[1]);
                 if (p == null) {
                     sender.sendMessage(Message.Failure(args[1] + "は存在しません."));
-                    return true;
+                    return;
                 }
             }
 
             Inventory inv = Bukkit.createInventory(p, 36, "閉じるとGiveします");
             ((HumanEntity) sender).openInventory(inv);
             plugin.temporaryInventories.add(inv);
-            return true;
         });
         subCmds.put("default-item", (sender, command, args) -> {
-            if (args.length < 2) return false;
+            if (args.length < 2) {
+                sender.sendMessage(Message.Failure("/gives default-item <name>"));
+                return;
+            }
+
             String invName = args[1];
             if (plugin.inventories.containsKey(invName)) {
                 plugin.respawnInventory = plugin.inventories.get(invName);
@@ -134,10 +144,13 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
             } else {
                 sender.sendMessage(Message.Failure(invName + "は存在しません."));
             }
-            return true;
         });
         subCmds.put("remove", (sender, command, args) -> {
-            if (args.length < 2) return false;
+            if (args.length < 2) {
+                sender.sendMessage(Message.Failure("/gives remove <name>"));
+                return;
+            }
+
             if (new File(plugin.getDataFolder(), getBasenamse(args[1])).delete()) {
                 Inventory inv = plugin.inventories.remove(args[1]);
                 if (plugin.respawnInventory.equals(inv)) {
@@ -149,7 +162,6 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
             } else {
                 sender.sendMessage(Message.Failure("削除に失敗しました."));
             }
-            return true;
         });
         subCmds.put("list", (sender, command, args) -> {
             sender.sendMessage(Message.Success("登録インベントリ一覧"));
@@ -158,7 +170,6 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
                 if (desc == null || desc.isEmpty()) desc = "説明はありません";
                 sender.sendMessage(Message.Success(name + " - " + desc));
             });
-            return true;
         });
     }
 
@@ -166,7 +177,8 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length < 1) return false;
-        return subCmds.get(args[0].toLowerCase()).execute(sender, command, args);
+        subCmds.get(args[0].toLowerCase()).execute(sender, command, args);
+        return true;
     }
 
     @Override

@@ -63,8 +63,20 @@ public final class GuiGive extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onRespawn(PlayerRespawnEvent e) {
-        if (e.getPlayer().getWorld().getGameRuleValue(GameRule.KEEP_INVENTORY)) return;
-        if (respawnInventory == null) return;
+        boolean GameRuleClassExists = true;
+        try {
+            Class.forName("org.bukkit.GameRule");
+        } catch (ClassNotFoundException classNotFoundException) {
+            GameRuleClassExists = false;
+        }
+
+        if (GameRuleClassExists) {
+            if (e.getPlayer().getWorld().isGameRule("keepInventory") &&
+                    e.getPlayer().getWorld().getGameRuleValue(GameRule.KEEP_INVENTORY)) return;
+            if (respawnInventory == null) return;
+        } else {
+            if (e.getPlayer().getWorld().getGameRuleValue("keepInventory").equals("true")) return;
+        }
 
         give(respawnInventory, e.getPlayer());
     }

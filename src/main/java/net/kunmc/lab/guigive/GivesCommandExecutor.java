@@ -48,7 +48,6 @@ public class GivesCommandExecutor implements CommandExecutor, TabCompleter {
                 String desc = Arrays.stream(args).skip(2).collect(Collectors.joining(" "));
                 plugin.invDesc.put(inv, desc);
             }
-            return;
         });
         subCmds.put("apply", (sender, command, args) -> {
             if (args.length < 3) {
